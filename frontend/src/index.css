@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@keyframes highlightFade {
+  0% { background-color: rgba(0, 168, 132, 0.2); }
+  100% { background-color: transparent; }
+}
+
+.highlight-message {
+  animation: highlightFade 2s ease-out;
+  border-radius: 8px;
+}
