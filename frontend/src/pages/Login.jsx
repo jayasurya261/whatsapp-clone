@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Lock, LogIn, MessageSquare, Loader2 } from 'lucide-react';
-import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
+import { authAPI } from '../services/api';
+import toast from 'react-hot-toast';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -19,32 +19,21 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      };
-
-      const { data } = await axios.post(
-        'http://localhost:5000/api/auth/login',
-        { email, password },
-        config
-      );
+      const { data } = await authAPI.login({ email, password });
 
       localStorage.setItem('userInfo', JSON.stringify(data));
       setLoading(false);
+      toast.success('Logged in successfully!');
       navigate('/chat');
     } catch (err) {
       setLoading(false);
-      setError(
-        err.response && err.response.data.message
-          ? err.response.data.message
-          : err.message
-      );
+      const message = err.response && err.response.data.message
+        ? err.response.data.message
+        : err.message;
+      toast.error(message);
     }
   };
 
@@ -65,11 +54,7 @@ const Login = () => {
           <p className="text-sm text-[#667781]">Sign in with your email and password to start chatting.</p>
         </div>
 
-        {error && (
-          <div className="mb-6 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm">
-            {error}
-          </div>
-        )}
+
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-1">
