@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, Reply, Copy, Forward, Trash2, Clock, CheckCheck } from 'lucide-react';
+import { ChevronDown, Reply, Copy, Forward, Trash2, Clock, CheckCheck, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '../../../context/ChatContext';
 import { formatMessageTime } from '../../../utils/dateUtils';
@@ -18,6 +18,20 @@ const MessageItem = ({
 }) => {
   const { user } = useChat();
   const isUser = msg.sender._id === user._id;
+
+  const renderStatusTicks = () => {
+    if (msg.pending) return <Clock className="w-3 h-3 text-[#8696a0]" />;
+    
+    if (msg.isRead) {
+      return <CheckCheck className="w-4 h-4 text-[#53bdeb]" />;
+    }
+    
+    if (msg.isDelivered) {
+      return <CheckCheck className="w-4 h-4 text-[#8696a0]" />;
+    }
+    
+    return <Check className="w-4 h-4 text-[#8696a0]" />;
+  };
 
   const renderContent = () => {
     if (!searchQuery) return msg.content;
@@ -95,13 +109,7 @@ const MessageItem = ({
           </p>
           <div className="flex items-center justify-end gap-1">
             <span className="text-[11px] text-[#667781] uppercase">{formatMessageTime(msg.createdAt)}</span>
-            {isUser && (
-              msg.pending ? (
-                <Clock className="w-3 h-3 text-[#8696a0]" />
-              ) : (
-                <CheckCheck className={`w-4 h-4 ${msg.isRead ? 'text-[#53bdeb]' : 'text-[#8696a0]'}`} />
-              )
-            )}
+            {isUser && renderStatusTicks()}
           </div>
         </div>
       </div>

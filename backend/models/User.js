@@ -24,6 +24,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
   },
+  isOnline: {
+    type: Boolean,
+    default: false,
+  },
+  lastSeen: {
+    type: Date,
+    default: Date.now,
+  },
 }, { timestamps: true });
 
 // Hash password before saving

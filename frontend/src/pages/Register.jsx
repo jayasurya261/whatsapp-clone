@@ -3,8 +3,10 @@ import { Mail, Lock, User, UserPlus, MessageSquare, Loader2 } from 'lucide-react
 import { useNavigate, Link } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import toast from 'react-hot-toast';
+import { useChat } from '../context/ChatContext';
 
 const Register = () => {
+  const { setUser } = useChat();
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -27,6 +29,7 @@ const Register = () => {
       const { data } = await authAPI.register({ name, username, email, password });
 
       localStorage.setItem('userInfo', JSON.stringify(data));
+      setUser(data);
       setLoading(false);
       toast.success('Account created successfully!');
       navigate('/chat');

@@ -33,3 +33,21 @@ export const getMessageGroupDate = (dateString) => {
   if (date.toDateString() === yesterday.toDateString()) return "YESTERDAY";
   return date.toLocaleDateString('en-GB');
 };
+
+export const formatLastSeen = (dateString) => {
+  if (!dateString) return 'Offline';
+  const date = new Date(dateString);
+  const now = new Date();
+  
+  if (date.toDateString() === now.toDateString()) {
+    return `last seen today at ${formatMessageTime(dateString)}`;
+  }
+  
+  const yesterday = new Date();
+  yesterday.setDate(now.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) {
+    return `last seen yesterday at ${formatMessageTime(dateString)}`;
+  }
+  
+  return `last seen on ${date.toLocaleDateString('en-GB')}`;
+};

@@ -4,19 +4,36 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '../../../context/ChatContext';
 import Avatar from '../../ui/Avatar';
 import IconButton from '../../ui/IconButton';
+import { formatLastSeen } from '../../../utils/dateUtils';
 
 const ChatHeader = ({ 
   onToggleLocalSearch, 
   showLocalSearch, 
-  onToggleMoreMenu, 
+  showMoreMenu,
+  setShowMoreMenu,
+  onClearChat,
+  onDeleteChat,
+  onBlockUser,
   showCallPrompt, 
   onToggleCallPrompt,
   onBack
 }) => {
-  const { selectedChat, user } = useChat();
+  const { selectedChat, user, userStatuses, typingUsers } = useChat();
   const otherUser = selectedChat?.users.find(u => u._id !== user._id);
 
   if (!selectedChat) return null;
+
+  const getStatusText = () => {
+    if (typingUsers[selectedChat._id]) return "typing...";
+    
+    const status = userStatuses[otherUser._id];
+    if (status?.isOnline) return "online";
+    
+    // Fallback to initial otherUser data if status not in userStatuses yet
+    if (otherUser.isOnline && !status) return "online";
+    
+    return formatLastSeen(status?.lastSeen || otherUser.lastSeen);
+  };
 
   return (
     <div className="h-[60px] bg-[#f0f2f5] flex items-center justify-between px-2 md:px-4 z-50 border-b border-[#e9edef] relative">
@@ -30,7 +47,9 @@ const ChatHeader = ({
         <Avatar src={otherUser.avatar} name={otherUser.name} />
         <div className="flex flex-col">
           <h3 className="text-[15px] md:text-[16px] font-medium text-[#111b21] leading-tight truncate max-w-[120px] sm:max-w-none">{otherUser.name}</h3>
-          <span className="text-[11px] md:text-[12px] text-[#667781]">@{otherUser.username}</span>
+          <span className={`text-[11px] md:text-[12px] ${typingUsers[selectedChat._id] ? 'text-[#00a884] font-medium animate-pulse' : 'text-[#667781]'}`}>
+            {getStatusText()}
+          </span>
         </div>
       </div>
       <div className="flex gap-4 items-center">
@@ -89,10 +108,44 @@ const ChatHeader = ({
           onClick={onToggleLocalSearch} 
           active={showLocalSearch}
         />
-        <IconButton 
-          icon={MoreVertical} 
-          onClick={onToggleMoreMenu} 
-        />
+        <div className="relative">
+          <IconButton 
+            icon={MoreVertical} 
+            onClick={() => setShowMoreMenu(!showMoreMenu)} 
+            active={showMoreMenu}
+          />
+          {showMoreMenu && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-[60] border border-[#e9edef]">
+              <button 
+                onClick={() => {
+                  setShowMoreMenu(false);
+                  onBlockUser();
+                }} 
+                className="w-full text-left px-4 py-2 text-sm text-[#111b21] hover:bg-[#f5f6f6] transition-colors"
+              >
+                Block user
+              </button>
+              <button 
+                onClick={() => {
+                  setShowMoreMenu(false);
+                  onClearChat();
+                }} 
+                className="w-full text-left px-4 py-2 text-sm text-[#111b21] hover:bg-[#f5f6f6] transition-colors"
+              >
+                Clear chat
+              </button>
+              <button 
+                onClick={() => {
+                  setShowMoreMenu(false);
+                  onDeleteChat();
+                }} 
+                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
+              >
+                Delete chat
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

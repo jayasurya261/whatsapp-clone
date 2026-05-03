@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Smile, Send, X } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,14 +7,47 @@ import { useChat } from '../../../context/ChatContext';
 const MessageInput = ({ onSendMessage, replyingTo, setReplyingTo }) => {
   const [newMessage, setNewMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const { user } = useChat();
+  const [typing, setTyping] = useState(false);
+  const lastTypingTimeRef = useRef();
+  const { user, socket, selectedChat } = useChat();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
+    
+    if (socket && selectedChat) {
+      socket.emit("stop typing", selectedChat);
+    }
+    
     onSendMessage(newMessage);
     setNewMessage('');
+    setTyping(false);
     setShowEmojiPicker(false);
+  };
+
+  const handleTyping = (e) => {
+    setNewMessage(e.target.value);
+    if (showEmojiPicker) setShowEmojiPicker(false);
+
+    if (!socket || !selectedChat) return;
+
+    if (!typing) {
+      setTyping(true);
+      socket.emit("typing", selectedChat);
+    }
+
+    lastTypingTimeRef.current = new Date().getTime();
+    const timerLength = 3000;
+
+    setTimeout(() => {
+      const timeNow = new Date().getTime();
+      const timeDiff = timeNow - lastTypingTimeRef.current;
+
+      if (timeDiff >= timerLength && typing) {
+        socket.emit("stop typing", selectedChat);
+        setTyping(false);
+      }
+    }, timerLength);
   };
 
   const onEmojiClick = (emojiData) => {
@@ -70,10 +103,7 @@ const MessageInput = ({ onSendMessage, replyingTo, setReplyingTo }) => {
             placeholder="Type a message" 
             className="w-full bg-white border-none outline-none px-4 py-2.5 rounded-lg text-[15px] text-[#3b4a54] shadow-sm"
             value={newMessage}
-            onChange={(e) => {
-              setNewMessage(e.target.value);
-              if(showEmojiPicker) setShowEmojiPicker(false);
-            }}
+            onChange={handleTyping}
           />
         </form>
         <div 

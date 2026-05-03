@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Bell, UserPlus, MoreVertical, Check, X } from 'lucide-react';
 import { useChat } from '../../../context/ChatContext';
 import Avatar from '../../ui/Avatar';
@@ -6,22 +6,15 @@ import IconButton from '../../ui/IconButton';
 
 const SidebarHeader = ({ onLogout, onToggleInvitations, onToggleSearch, invitations, showInvitations, onAcceptInvite }) => {
   const { user } = useChat();
+  const [showMenu, setShowMenu] = useState(false);
 
   return (
     <div className="h-[60px] bg-[#f0f2f5] flex items-center justify-between px-4 relative">
-      <div className="flex items-center gap-3 relative group">
+      <div className="flex items-center gap-3">
         <Avatar src={user?.avatar} name={user?.username} />
         <span className="font-semibold text-[#3b4a54] truncate max-w-[120px]">
           {user?.name || user?.username}
         </span>
-        <div className="absolute top-full left-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity z-50">
-          <button 
-            onClick={onLogout} 
-            className="bg-white text-red-600 text-xs font-bold px-4 py-2 rounded shadow-md border border-red-100 hover:bg-red-50"
-          >
-            Logout
-          </button>
-        </div>
       </div>
       <div className="flex gap-2 text-[#54656f]">
         <div className="relative">
@@ -60,14 +53,31 @@ const SidebarHeader = ({ onLogout, onToggleInvitations, onToggleSearch, invitati
           icon={UserPlus} 
           onClick={onToggleSearch} 
         />
-        <IconButton 
-          icon={MoreVertical} 
-          onClick={() => {}} 
-        />
+        <div className="relative">
+          <IconButton 
+            icon={MoreVertical} 
+            onClick={() => setShowMenu(!showMenu)} 
+            active={showMenu}
+          />
+          {showMenu && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded shadow-lg py-2 z-[70] border border-[#e9edef]">
+              <button 
+                onClick={() => {
+                  setShowMenu(false);
+                  onLogout();
+                }} 
+                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
+              >
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
 export default SidebarHeader;
+
 

@@ -40,12 +40,20 @@ app.get('/', (req, res) => {
   res.send('WhatsApp Clone Backend is running!');
 });
 
+import Message from './models/Message.js';
+import User from './models/User.js';
+
 // Socket.io logic
 io.on("connection", (socket) => {
   console.log("Connected to socket.io");
 
-  socket.on("setup", (userData) => {
+  socket.on("setup", async (userData) => {
     socket.join(userData._id);
+    socket.userId = userData._id; // Store userId on socket
+    
+    await User.findByIdAndUpdate(userData._id, { isOnline: true });
+    socket.broadcast.emit("user status change", { userId: userData._id, isOnline: true });
+    
     console.log(`User ${userData._id} connected`);
     socket.emit("connected");
   });
@@ -55,27 +63,83 @@ io.on("connection", (socket) => {
     console.log("User Joined Room: " + room);
   });
 
-  socket.on("new message", (newMessageRecieved) => {
+  socket.on("typing", (chat) => {
+    if (!chat || !chat._id) return;
+    const roomId = chat._id.toString();
+    console.log(`Typing in ${roomId}`);
+    
+    // Broadcast to the chat room
+    socket.to(roomId).emit("typing", roomId);
+    
+    // Also broadcast to individual users for sidebar updates
+    if (chat.users) {
+      chat.users.forEach(u => {
+        const targetId = u._id.toString();
+        if (targetId !== socket.userId) {
+          io.to(targetId).emit("typing", roomId);
+        }
+      });
+    }
+  });
+
+  socket.on("stop typing", (chat) => {
+    if (!chat || !chat._id) return;
+    const roomId = chat._id.toString();
+    
+    socket.to(roomId).emit("stop typing", roomId);
+    
+    if (chat.users) {
+      chat.users.forEach(u => {
+        const targetId = u._id.toString();
+        if (targetId !== socket.userId) {
+          io.to(targetId).emit("stop typing", roomId);
+        }
+      });
+    }
+  });
+
+  socket.on("new message", async (newMessageRecieved) => {
     var chat = newMessageRecieved.chat;
 
     if (!chat.users) return console.log("chat.users not defined");
 
-    chat.users.forEach((user) => {
+    chat.users.forEach(async (user) => {
       if (user._id == newMessageRecieved.sender._id) return;
+
+      // Check if recipient is online to mark as delivered
+      const recipient = await User.findById(user._id);
+      if (recipient.isOnline) {
+        await Message.findByIdAndUpdate(newMessageRecieved._id, { isDelivered: true });
+        newMessageRecieved.isDelivered = true;
+      }
 
       socket.in(user._id).emit("message recieved", newMessageRecieved);
     });
   });
 
   socket.on("message read", async (data) => {
-    const { chatId, userId } = data;
-    // Broadcast to the chat room that messages are read
+    const { chatId, userId, messageId } = data;
+    if (messageId) {
+      await Message.findByIdAndUpdate(messageId, { isRead: true });
+    } else {
+      await Message.updateMany({ chat: chatId, sender: { $ne: userId } }, { isRead: true });
+    }
     socket.in(chatId).emit("message read update", { chatId, userId });
   });
 
-  socket.off("setup", () => {
-    console.log("USER DISCONNECTED");
-    socket.leave(userData._id);
+  socket.on("disconnect", async () => {
+    if (socket.userId) {
+      await User.findByIdAndUpdate(socket.userId, { 
+        isOnline: false, 
+        lastSeen: new Date() 
+      });
+      socket.broadcast.emit("user status change", { 
+        userId: socket.userId, 
+        isOnline: false, 
+        lastSeen: new Date() 
+      });
+      console.log("USER DISCONNECTED");
+    }
   });
 });
 

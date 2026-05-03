@@ -4,8 +4,8 @@ import { Search, Info, Ban, MinusCircle, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useChat } from '../context/ChatContext';
-import useSocket from '../hooks/useSocket';
 import { messageAPI, userAPI, chatAPI } from '../services/api';
+import { encryptMessage, decryptMessage } from '../utils/encryption';
 
 // Components
 import SidebarHeader from '../components/chat/Sidebar/SidebarHeader';
@@ -40,7 +40,7 @@ const Chat = () => {
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 
   const navigate = useNavigate();
-  const { socket, connected } = useSocket(user);
+  const { socket, socketConnected: connected } = useChat();
 
   // Socket Message Receiver
   useEffect(() => {
@@ -50,7 +50,15 @@ const Chat = () => {
       if (!selectedChat || selectedChat._id !== newMessageRecieved.chat._id) {
         fetchChats();
       } else {
-        setMessages((prev) => [...prev, newMessageRecieved]);
+        const decryptedMessage = {
+          ...newMessageRecieved,
+          content: decryptMessage(newMessageRecieved.content),
+          replyTo: newMessageRecieved.replyTo ? {
+            ...newMessageRecieved.replyTo,
+            content: decryptMessage(newMessageRecieved.replyTo.content)
+          } : null
+        };
+        setMessages((prev) => [...prev, decryptedMessage]);
       }
     });
 
@@ -61,7 +69,7 @@ const Chat = () => {
     socket.on("message read update", ({ chatId, userId }) => {
       if (selectedChat && selectedChat._id === chatId) {
         setMessages((prev) => 
-          prev.map((m) => m.sender._id !== userId ? { ...m, isRead: true } : m)
+          prev.map((m) => m.sender._id !== userId ? { ...m, isRead: true, isDelivered: true } : m)
         );
       }
     });
@@ -78,7 +86,11 @@ const Chat = () => {
     if (selectedChat && messages.length > 0 && socket) {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage.sender._id !== user._id && !lastMessage.isRead) {
-        socket.emit("message read", { chatId: selectedChat._id, userId: user._id });
+        socket.emit("message read", { 
+          chatId: selectedChat._id, 
+          userId: user._id,
+          messageId: lastMessage._id 
+        });
       }
     }
   }, [selectedChat, messages, user._id, socket]);
@@ -89,7 +101,15 @@ const Chat = () => {
     try {
       setLoading(true);
       const { data } = await messageAPI.fetchMessages(selectedChat._id);
-      setMessages(data);
+      const decryptedMessages = data.map(m => ({
+        ...m,
+        content: decryptMessage(m.content),
+        replyTo: m.replyTo ? {
+          ...m.replyTo,
+          content: decryptMessage(m.replyTo.content)
+        } : null
+      }));
+      setMessages(decryptedMessages);
       setLoading(false);
       socket?.emit("join chat", selectedChat._id);
     } catch (error) {
@@ -124,16 +144,26 @@ const Chat = () => {
     setMessages((prev) => [...prev, optimisticMessage]);
 
     try {
+      const encryptedContent = encryptMessage(content);
       const { data } = await messageAPI.sendMessage({
-        content,
+        content: encryptedContent,
         chatId: selectedChat._id,
         replyTo: currentReplyTo?._id
       });
 
-      socket?.emit("new message", data);
+      const decryptedSentMessage = {
+        ...data,
+        content: decryptMessage(data.content),
+        replyTo: data.replyTo ? {
+          ...data.replyTo,
+          content: decryptMessage(data.replyTo.content)
+        } : null
+      };
+
+      socket?.emit("new message", data); // Emit encrypted data to server
       
       setMessages((prev) => 
-        prev.map((m) => (m._id === optimisticMessage._id ? data : m))
+        prev.map((m) => (m._id === optimisticMessage._id ? decryptedSentMessage : m))
       );
     } catch (error) {
       console.error("Failed to send message");
@@ -299,7 +329,11 @@ const Chat = () => {
               <ChatHeader 
                 onToggleLocalSearch={() => setShowLocalSearch(!showLocalSearch)}
                 showLocalSearch={showLocalSearch}
-                onToggleMoreMenu={() => setShowMoreMenu(!showMoreMenu)}
+                showMoreMenu={showMoreMenu}
+                setShowMoreMenu={setShowMoreMenu}
+                onClearChat={handleClearChat}
+                onDeleteChat={handleDeleteChat}
+                onBlockUser={() => toast.error("Block functionality coming soon!")}
                 showCallPrompt={showCallPrompt}
                 onToggleCallPrompt={() => setShowCallPrompt(!showCallPrompt)}
                 onBack={() => setSelectedChat(null)}

@@ -4,22 +4,42 @@ import Register from './pages/Register';
 import Chat from './pages/Chat';
 import NotFound from './pages/NotFound';
 
-import { ChatProvider } from './context/ChatContext';
+import { ChatProvider, useChat } from './context/ChatContext';
 
 import { Toaster } from 'react-hot-toast';
+
+const AppRoutes = () => {
+  const { user } = useChat();
+
+  return (
+    <Routes>
+      <Route 
+        path="/login" 
+        element={user ? <Navigate to="/chat" replace /> : <Login />} 
+      />
+      <Route 
+        path="/register" 
+        element={user ? <Navigate to="/chat" replace /> : <Register />} 
+      />
+      <Route 
+        path="/chat" 
+        element={user ? <Chat /> : <Navigate to="/login" replace />} 
+      />
+      <Route 
+        path="/" 
+        element={<Navigate to={user ? "/chat" : "/login"} replace />} 
+      />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
 
 function App() {
   return (
     <Router>
       <ChatProvider>
         <Toaster position="top-center" reverseOrder={false} />
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/chat" element={<Chat />} />
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AppRoutes />
       </ChatProvider>
     </Router>
   );

@@ -4,7 +4,7 @@ import Avatar from '../../ui/Avatar';
 import { formatChatDate } from '../../../utils/dateUtils';
 
 const ChatList = () => {
-  const { chats, selectedChat, setSelectedChat, user } = useChat();
+  const { chats, selectedChat, setSelectedChat, user, typingUsers } = useChat();
 
   if (chats.length === 0) {
     return (
@@ -19,6 +19,7 @@ const ChatList = () => {
       {chats.map((chat) => {
         const otherUser = chat.users.find(u => u._id !== user._id);
         const isSelected = selectedChat?._id === chat._id;
+        const isTyping = typingUsers[chat._id];
 
         return (
           <div 
@@ -34,8 +35,8 @@ const ChatList = () => {
                   {chat.latestMessage ? formatChatDate(chat.latestMessage.createdAt) : ''}
                 </span>
               </div>
-              <p className="text-sm text-[#667781] truncate pr-2">
-                {chat.latestMessage ? chat.latestMessage.content : 'No messages yet'}
+              <p className={`text-sm truncate pr-2 ${isTyping ? 'text-[#00a884] font-medium' : 'text-[#667781]'}`}>
+                {isTyping ? 'typing...' : (chat.latestMessage ? chat.latestMessage.content : 'No messages yet')}
               </p>
             </div>
           </div>

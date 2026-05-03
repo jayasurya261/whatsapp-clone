@@ -4,6 +4,8 @@ A simplified full-stack WhatsApp Web clone built with React, Node.js, and MongoD
 
 ## 🚀 Features
 
+- **End-to-End Encryption (E2EE)**: All messages are encrypted on the client-side using AES before being sent to the server. The database only stores encrypted blobs.
+- **Route Protection**: Automated redirection for unauthenticated users and session persistence logic.
 - **Authentication**: Secure Login/Register system with JWT.
 - **Real-Time Messaging**: Instant message delivery and status updates using Socket.io.
 - **Two-Panel Layout**: Responsive sidebar for chats and a dedicated chat window.
@@ -21,7 +23,7 @@ A simplified full-stack WhatsApp Web clone built with React, Node.js, and MongoD
 
 ## 🛠️ Technology Stack
 
-- **Frontend**: React.js, Vite, Tailwind CSS, Lucide React, Framer Motion, React Hot Toast.
+- **Frontend**: React.js, Vite, Tailwind CSS, Lucide React, Framer Motion, React Hot Toast, **Crypto-JS**.
 - **Backend**: Node.js, Express.js, Socket.io.
 - **Database**: MongoDB (Mongoose).
 - **Authentication**: JSON Web Tokens (JWT).
@@ -59,6 +61,8 @@ A simplified full-stack WhatsApp Web clone built with React, Node.js, and MongoD
 3. Create a `.env` file in the `frontend` folder:
    ```env
    VITE_API_URL=http://localhost:5000
+   VITE_SOCKET_ENDPOINT=http://localhost:5000
+   VITE_E2EE_SECRET=your_custom_secret_key
    ```
 4. Start the frontend development server:
    ```bash
@@ -85,10 +89,6 @@ whatsapp-clone/
 └── README.md
 ```
 
-## 📝 Submission Details
-- **Project Completion**: May 2nd, 2026.
-- **Author**: Jayasurya (WhatsApp Clone Task)
-- **Contact**: hr@humbletree.io
-
 ---
-Built with ❤️ as part of the Full Stack Developer Task.
+Built with ❤️.
+
