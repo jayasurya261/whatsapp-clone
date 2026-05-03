@@ -90,5 +90,3 @@ whatsapp-clone/
 ```
 
 ---
-Built with ❤️.
-
